@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        String  @id @default(uuid()) @db.Uuid
+  nome      String  @db.VarChar(100)
+  email     String  @unique @db.VarChar(100)
+  username  String  @unique @db.VarChar(50)
+  senha     String  @db.Text
+  authToken String? @map("auth_token") @db.Uuid
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  seguidores Follow[] @relation("Seguidores")
+  seguindo   Follow[] @relation("Seguindo")
+  Like       Like[]
+  Tweet      Tweet[]
+
+  @@unique([username, email])
+  @@map("usuarios")
+}
+
+model Tweet {
+  id        String    @id @default(uuid()) @db.Uuid
+  conteudo  String    @db.Text
+  tipo      TipoTweet @default(TWEET)
+  usuarioId String    @db.Uuid
+  reply     String?   @db.Uuid // FK para o tweet original, se for uma reply
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  // Relações
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  // Lado que contém a foreign key (tweetPai)
+  tweetPai Tweet? @relation("Respostas", fields: [reply], references: [id])
+
+  // Lado reverso (respostas), sem fields nem references
+  respostas Tweet[] @relation("Respostas")
+
+  likes Like[]
+
+  @@map("tweets")
+}
+
+model Like {
+  usuarioId String  @db.Uuid
+  tweetId   String  @db.Uuid
+  tweet     Tweet   @relation(fields: [tweetId], references: [id])
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@id([usuarioId, tweetId])
+}
+
+/**
+ * Model descartada, aplicado lógica de reply na model Tweet (Linha 31)
+ */
+// model Reply {
+//   tweetId   String  @db.Uuid
+//   usuarioId String  @db.Uuid
+//   conteudo  String  @db.Text
+//   tweet     Tweet   @relation(fields: [tweetId], references: [id])
+//   usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+//   @@id([tweetId, usuarioId])
+// }
+
+model Follow {
+  usuarioId  String  @db.Uuid
+  followerId String  @db.Uuid
+  follower   Usuario @relation("Seguidores", fields: [followerId], references: [id])
+  usuario    Usuario @relation("Seguindo", fields: [usuarioId], references: [id])
+
+  @@id([usuarioId, followerId])
+}
+
+enum TipoTweet {
+  TWEET
+  REPLY
+}
