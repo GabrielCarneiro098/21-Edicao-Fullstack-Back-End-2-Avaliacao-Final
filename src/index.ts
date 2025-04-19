@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { envs } from "./envs";
 import { UsuariosRoutes } from "./routes/usuarios.routes";
 import { TweetsRoutes } from "./routes/tweets.routes";
@@ -7,6 +8,7 @@ import { FollowRoutes } from "./routes/follow.routes";
 import { LikesRoutes } from "./routes/likes.routes";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (_, res) => {
