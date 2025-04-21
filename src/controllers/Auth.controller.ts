@@ -5,10 +5,10 @@ import { AuthService } from "../services/auth.service";
 export class AuthController {
   public async login(req: Request, res: Response): Promise<void> {
     try {
-      const { email, username, senha } = req.body;
+      const { login, senha } = req.body;
 
       const service = new AuthService();
-      const resultado = await service.loginUsario({ email, username, senha });
+      const resultado = await service.loginUsuario({ login, senha });
 
       res.status(200).json({
         sucesso: true,
@@ -19,6 +19,7 @@ export class AuthController {
       onError(error, res);
     }
   }
+
   public async logout(req: Request, res: Response): Promise<void> {
     try {
       const service = new AuthService();

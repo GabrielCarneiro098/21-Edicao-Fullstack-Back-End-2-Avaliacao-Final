@@ -1,5 +1,4 @@
-export interface loginDTO {
-  email: string;
-  username: string;
+export type LoginDTO = {
+  login: string; // Pode ser email ou username
   senha: string;
-}
+};

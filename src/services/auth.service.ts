@@ -1,28 +1,22 @@
 import { prismaClient } from "../database/prisma.client";
-import { loginDTO } from "../dtos/auth.dto";
+import { LoginDTO } from "../dtos/auth.dto";
 import { HTTPError } from "../utils/http.error";
 import bcrypt from "bcrypt";
 import { v4 as randomUUID } from "uuid";
 
 export class AuthService {
-  public async loginUsario({
-    email,
-    username,
-    senha,
-  }: loginDTO): Promise<string> {
+  public async loginUsuario({ login, senha }: LoginDTO): Promise<string> {
     try {
-      if (!senha || (!email && !username)) {
-        throw new HTTPError(400, "Email ou username e senha são obrigatórios");
+      if (!senha || !login) {
+        throw new HTTPError(400, "Login e senha são obrigatórios");
       }
 
-      const orConditions = [];
-      if (email) orConditions.push({ email });
-      if (username) orConditions.push({ username });
+      const isEmail = login.includes("@");
+
+      const whereCondition = isEmail ? { email: login } : { username: login };
 
       const usuario = await prismaClient.usuario.findFirst({
-        where: {
-          OR: orConditions,
-        },
+        where: whereCondition,
       });
 
       if (!usuario) {
