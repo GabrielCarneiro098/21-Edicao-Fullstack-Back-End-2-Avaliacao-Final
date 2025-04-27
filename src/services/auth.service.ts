@@ -36,7 +36,7 @@ export class AuthService {
         omit: { senha: true, email: true },
       });
 
-      return { token, usuarioLogado };
+      return { usuarioLogado };
     } catch (error) {
       if (error instanceof HTTPError) throw error;
       throw new Error("Login failed");
