@@ -13,7 +13,7 @@ export class AuthController {
       res.status(200).json({
         sucesso: true,
         mensagem: "Login efetuado com sucesso",
-        dados: { resultado },
+        dados: resultado,
       });
     } catch (error) {
       onError(error, res);
