@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import { v4 as randomUUID } from "uuid";
 
 export class AuthService {
-  public async loginUsuario({ login, senha }: LoginDTO): Promise<string> {
+  public async loginUsuario({ login, senha }: LoginDTO): Promise<object> {
     try {
       if (!senha || !login) {
         throw new HTTPError(400, "Login e senha são obrigatórios");
@@ -30,12 +30,13 @@ export class AuthService {
 
       const token = randomUUID();
 
-      await prismaClient.usuario.update({
+      const usuarioLogado = await prismaClient.usuario.update({
         where: { id: usuario.id },
         data: { authToken: token },
+        omit: { senha: true, email: true },
       });
 
-      return token;
+      return { token, usuarioLogado };
     } catch (error) {
       if (error instanceof HTTPError) throw error;
       throw new Error("Login failed");
