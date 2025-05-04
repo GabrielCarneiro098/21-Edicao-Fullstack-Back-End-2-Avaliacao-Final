@@ -46,7 +46,7 @@ model Tweet {
   // Lado reverso (respostas), sem fields nem references
   respostas Tweet[] @relation("Respostas")
 
-  likes Like[]
+  likes Like[] // Removido o onDelete aqui
 
   @@map("tweets")
 }
@@ -54,24 +54,11 @@ model Tweet {
 model Like {
   usuarioId String  @db.Uuid
   tweetId   String  @db.Uuid
-  tweet     Tweet   @relation(fields: [tweetId], references: [id])
+  tweet     Tweet   @relation(fields: [tweetId], references: [id], onDelete: Cascade) // Definido o onDelete no campo `tweetId` do modelo `Like`
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
   @@id([usuarioId, tweetId])
 }
-
-/**
- * Model descartada, aplicado lógica de reply na model Tweet (Linha 31)
- */
-// model Reply {
-//   tweetId   String  @db.Uuid
-//   usuarioId String  @db.Uuid
-//   conteudo  String  @db.Text
-//   tweet     Tweet   @relation(fields: [tweetId], references: [id])
-//   usuario   Usuario @relation(fields: [usuarioId], references: [id])
-
-//   @@id([tweetId, usuarioId])
-// }
 
 model Follow {
   usuarioId  String  @db.Uuid
