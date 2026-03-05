@@ -8,6 +8,10 @@ const salRountds = 10;
 
 type UsuarioParcial = Omit<Usuario, "senha" | "email" | "authToken">;
 
+export type UsuarioComContagens = UsuarioParcial & {
+  _count?: { seguidores: number; seguindo: number };
+};
+
 export class UsuariosService {
   public async listar(): Promise<UsuarioParcial[]> {
     const usuariosDB = await prismaClient.usuario.findMany({
@@ -58,21 +62,46 @@ export class UsuariosService {
     return novoUsuario;
   }
 
-  public async buscar(id: string): Promise<UsuarioParcial | null> {
-    // Verifica se o usuário existe
-    const usuarioExistente = await prismaClient.usuario.findUnique({
-      where: { id },
-    });
-    if (!usuarioExistente) {
-      throw new HTTPError(404, "Usuário não encontrado");
-    }
-
+  public async buscar(id: string): Promise<UsuarioComContagens> {
     const usuario = await prismaClient.usuario.findUnique({
       where: { id },
-      omit: { ["senha"]: true, ["email"]: true },
+      omit: { senha: true, email: true, authToken: true },
+      include: {
+        _count: {
+          select: { seguidores: true, seguindo: true },
+        },
+      },
     });
+    if (!usuario) throw new HTTPError(404, "Usuário não encontrado");
+    const { _count, ...rest } = usuario as typeof usuario & { _count: { seguidores: number; seguindo: number } };
+    return { ...rest, _count };
+  }
 
-    return usuario;
+  public async buscarPorUsername(
+    username: string,
+    currentUserId?: string
+  ): Promise<UsuarioComContagens & { isFollowing?: boolean } | null> {
+    const usuario = await prismaClient.usuario.findUnique({
+      where: { username: username.toLowerCase() },
+      omit: { senha: true, email: true, authToken: true },
+      include: {
+        _count: {
+          select: { seguidores: true, seguindo: true },
+        },
+      },
+    });
+    if (!usuario) throw new HTTPError(404, "Usuário não encontrado");
+    const { _count, ...rest } = usuario as typeof usuario & { _count: { seguidores: number; seguindo: number } };
+    const result: UsuarioComContagens & { isFollowing?: boolean } = { ...rest, _count };
+    if (currentUserId && currentUserId !== usuario.id) {
+      const follow = await prismaClient.follow.findUnique({
+        where: {
+          usuarioId_followerId: { usuarioId: usuario.id, followerId: currentUserId },
+        },
+      });
+      result.isFollowing = !!follow;
+    }
+    return result;
   }
 
   public async atualizar({
@@ -80,21 +109,18 @@ export class UsuariosService {
     nome,
     email,
     username,
+    imgUrl,
     senhaNova,
     senhaAtual,
   }: any): Promise<UsuarioParcial | null> {
-    // Buscar o usuário
     const usuario = await prismaClient.usuario.findUnique({ where: { id } });
+    if (!usuario) throw new HTTPError(404, "Usuário não encontrado");
 
-    if (!usuario) {
-      throw new Error("Usuário não encontrado");
-    }
-
-    const dadosAtualizados: any = {
-      nome,
-      email,
-      username,
-    };
+    const dadosAtualizados: Record<string, unknown> = {};
+    if (nome != null) dadosAtualizados.nome = nome;
+    if (email != null) dadosAtualizados.email = email;
+    if (username != null) dadosAtualizados.username = username.toLowerCase();
+    if (imgUrl !== undefined) dadosAtualizados.imgUrl = imgUrl || null;
 
     // Se senhaNova foi informada, senhaAtual também deve ser validada
     if (senhaNova) {
@@ -110,11 +136,9 @@ export class UsuariosService {
       }
 
       // Gerar hash da nova senha
-      const novaSenhaHash = await bcrypt.hash(senhaNova, 10);
-      dadosAtualizados.senha = novaSenhaHash;
+      dadosAtualizados.senha = await bcrypt.hash(senhaNova, 10);
     }
 
-    // Atualizar o usuário
     const usuarioAtualizado = await prismaClient.usuario.update({
       where: { id },
       data: dadosAtualizados,

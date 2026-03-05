@@ -23,23 +23,29 @@ export class UsuariosController {
     }
   }
 
-  // Listar usuário por ID
+  // Buscar usuário por ID
   public async buscar(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-
       const service = new UsuariosService();
-
       const usuario = await service.buscar(id);
+      res.status(200).json({
+        sucesso: true,
+        mensagem: "Usuário encontrado",
+        resultado: usuario,
+      });
+    } catch (error) {
+      onError(error, res);
+    }
+  }
 
-      if (!usuario) {
-        res.status(404).json({
-          sucesso: false,
-          mensagem: "Usuário não encontrado",
-        });
-        return;
-      }
-
+  // Buscar usuário por username (para perfil público); opcionalmente retorna isFollowing se autenticado
+  public async buscarPorUsername(req: Request, res: Response): Promise<void> {
+    try {
+      const { username } = req.params;
+      const currentUserId = req.usuarioLogado?.id;
+      const service = new UsuariosService();
+      const usuario = await service.buscarPorUsername(username, currentUserId);
       res.status(200).json({
         sucesso: true,
         mensagem: "Usuário encontrado",
@@ -91,7 +97,7 @@ export class UsuariosController {
   // Atualizar usuário
   public async atualizar(req: Request, res: Response): Promise<void> {
     try {
-      const { nome, email, username, senhaNova, senhaAtual } = req.body;
+      const { nome, email, username, imgUrl, senhaNova, senhaAtual } = req.body;
 
       const service = new UsuariosService();
       const resultado = await service.atualizar({
@@ -99,6 +105,7 @@ export class UsuariosController {
         nome,
         email,
         username,
+        imgUrl,
         senhaNova,
         senhaAtual,
       });

@@ -13,9 +13,9 @@ export class FollowController {
       const resultado = await service.toggleFollow({ followerId, usuarioId });
       //Service
 
-      res.status(201).json({
+      res.status(200).json({
         sucesso: true,
-        messagem: resultado,
+        mensagem: resultado,
       });
     } catch (error) {
       onError(error, res);
