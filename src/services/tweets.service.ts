@@ -1,13 +1,41 @@
 import { Tweet } from "@prisma/client";
-import { prismaClient } from "../database/prisma.client"; // Verifique o caminho correto aqui
+import { prismaClient } from "../database/prisma.client";
 import { HTTPError } from "../utils/http.error";
 
-export class TweetsService {
-  public async listar(): Promise<Tweet[]> {
-    // Use Tweet[] here
-    const tweets = await prismaClient.tweet.findMany(); // `tweet` deve ser em minúsculo se corresponder ao seu esquema no Prisma
+export type TweetComContagem = Tweet & {
+  _count: { likes: number; respostas: number };
+  liked?: boolean;
+};
 
-    return tweets;
+export class TweetsService {
+  public async listar(usuarioId?: string): Promise<TweetComContagem[]> {
+    const tweets = await prismaClient.tweet.findMany({
+      include: {
+        _count: {
+          select: { likes: true, respostas: true },
+        },
+      },
+    });
+
+    const resultado: TweetComContagem[] = tweets.map((t) => ({
+      ...t,
+      _count: (t as Tweet & { _count: { likes: number; respostas: number } })._count,
+      liked: false,
+    }));
+
+    if (usuarioId) {
+      const tweetIds = resultado.map((t) => t.id);
+      const likesDoUsuario = await prismaClient.like.findMany({
+        where: { usuarioId, tweetId: { in: tweetIds } },
+        select: { tweetId: true },
+      });
+      const setLiked = new Set(likesDoUsuario.map((l) => l.tweetId));
+      resultado.forEach((t) => {
+        t.liked = setLiked.has(t.id);
+      });
+    }
+
+    return resultado;
   }
 
   public async cadastrar({

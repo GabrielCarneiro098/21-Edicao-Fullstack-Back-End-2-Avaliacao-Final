@@ -42,3 +42,32 @@ export async function authMiddleware(
     onError(error, res);
   }
 }
+
+/** Auth opcional: preenche req.usuarioLogado quando o token é válido; não bloqueia quando não há token. */
+export async function optionalAuthMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const token = req.headers.authorization;
+  if (!token || !isValidUid(token)) {
+    next();
+    return;
+  }
+  try {
+    const usuarioEncontrado = await prismaClient.usuario.findFirst({
+      where: { authToken: token },
+    });
+    if (usuarioEncontrado) {
+      req.usuarioLogado = {
+        id: usuarioEncontrado.id,
+        nome: usuarioEncontrado.nome,
+        username: usuarioEncontrado.username,
+        email: usuarioEncontrado.email,
+      };
+    }
+  } catch {
+    // ignora erros; segue sem usuário
+  }
+  next();
+}

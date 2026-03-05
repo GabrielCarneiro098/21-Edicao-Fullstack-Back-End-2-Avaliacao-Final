@@ -1,4 +1,3 @@
-import { error } from "console";
 import { toogleLikeDto } from "../dtos/like.dto";
 import { HTTPError } from "../utils/http.error";
 import { prismaClient } from "../database/prisma.client";
@@ -8,6 +7,13 @@ export class LikeService {
     usuarioId,
     tweetId,
   }: toogleLikeDto): Promise<string> {
+    const tweetExiste = await prismaClient.tweet.findUnique({
+      where: { id: tweetId },
+    });
+    if (!tweetExiste) {
+      throw new HTTPError(404, "Tweet não encontrado");
+    }
+
     const registroExiste = await prismaClient.like.findUnique({
       where: {
         usuarioId_tweetId: {

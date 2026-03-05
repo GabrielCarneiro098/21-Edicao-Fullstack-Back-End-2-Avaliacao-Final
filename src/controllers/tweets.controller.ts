@@ -7,10 +7,9 @@ export class TweetsController {
   public async listar(req: Request, res: Response): Promise<void> {
     try {
       const service = new TweetsService();
+      const usuarioId = req.usuarioLogado?.id;
 
-      const dados = await service.listar();
-
-      // const dados = await prismaClient.tweet.findMany();
+      const dados = await service.listar(usuarioId);
 
       res.status(200).json({
         sucesso: true,
